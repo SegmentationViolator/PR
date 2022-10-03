@@ -1,14 +1,23 @@
 from asyncio import sleep
+from logging import exception
 from random import randint
+from sys import stderr
 from cachetools import TTLCache
-from crescent import Bot, event
-from hikari import Color, Snowflake, StartedEvent
-
+from crescent import Bot, catch_event, event
+from hikari import Color, Event, Snowflake, StartedEvent
+from toml import TomlDecodeError
 from .conf import Conf
 from .util import calculate_interval, report
 
 conf = Conf(TTLCache(1, 900))
 bot = Bot(conf.token)
+
+@bot.include
+@catch_event(FileNotFoundError, KeyError, TomlDecodeError, TypeError, ValueError)
+async def on_exception(exception: Exception, event: Event) -> None:
+    print(f"Error: {exception}", file=stderr)
+    await bot.close()
+    exit(1)
 
 @bot.include
 @event(event_type=StartedEvent)
